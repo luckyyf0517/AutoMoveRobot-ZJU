@@ -26,10 +26,10 @@ class Vel:
 class DWA:
     def __init__(self, final_x, final_y, 
                  vx_min: float=-3500.0, vx_max: float=3500.0, 
-                 dx_min: float=-4000.0, dx_max: float=2000.0, 
-                 vw_min: float=-15, vw_max: float=10, 
-                 dw_min: float=-10, dw_max: float=10, 
-                 dt=0.01, simt=0.2, res=10):
+                 dx_min: float=-3000.0, dx_max: float=3000.0, 
+                 vw_max: float=10, 
+                 dw_max: float=10, 
+                 dt=0.01, simt=0.3, res=10):
         self.obstacles_history = []  # 障碍物历史
         self.obstacles = []  # 障碍物
         self.obstacles_predict = []  # 障碍物预测
@@ -40,15 +40,15 @@ class DWA:
         # range config
         self.vx_range = Range(vx_min, vx_max)
         self.dx_range = Range(dx_min, dx_max)
-        self.vw_range = Range(vw_min, vw_max)
-        self.dw_range = Range(dw_min, dw_max)
+        self.vw_range = Range(-vw_max, vw_max)
+        self.dw_range = Range(-dw_max, dw_max)
         # target config
         self.target = None
         self.final_x = final_x
         self.final_y = final_y
         self.start = None
         self.reach_dist = 500
-        self.dangerous_dist = 400
+        self.dangerous_dist = 300
         # simulation config
         self.dt = dt
         self.simt = simt
@@ -85,7 +85,6 @@ class DWA:
                 signy = np.sign(vy)
             
                 self.obstacles_predict.append(Pos(obs.x, obs.y + signy * 150, obs.theta))
-        print(len(self.obstacles_predict))
         return self.obstacles_predict
             
     def if_reach_target(self):  
@@ -107,20 +106,27 @@ class DWA:
     
     def navigate(self):
         
+        if self.vel.vx < 200:
+            temp_vw_max = 4
+        else:
+            temp_vw_max = self.vw_range.max
+        
         vx_min = max(
             self.vx_range.min, 
-            self.vel.vx + self.simt * self.dx_range.min,
+            self.vel.vx - self.simt * self.dx_range.max,
         )
         vx_max = min(
             self.vx_range.max, 
             self.vel.vx + self.simt * self.dx_range.max,
         )
         vw_min = max(
-            self.vw_range.min, 
-            self.vel.vw + self.simt * self.dw_range.min,
+            # self.vw_range.min, 
+            -temp_vw_max,
+            self.vel.vw - self.simt * self.dw_range.max,
         )
         vw_max = min(
-            self.vw_range.max, 
+            # self.vw_range.max,
+            temp_vw_max, 
             self.vel.vw + self.simt * self.dw_range.max,
         )
         
